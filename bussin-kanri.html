@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="物販管理">
+<title>物販管理ツール</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f5f3; --surface: #ffffff; --surface2: #efefed; --surface3: #e5e5e3;
+  --border: rgba(0,0,0,0.07); --border2: rgba(0,0,0,0.13);
+  --text: #111; --text2: #888; --text3: #bbb;
+  --accent: #1a1a1a; --green: #0a7c4e; --red: #c0392b;
+  --blue: #1a5fa8; --purple: #6b3fa0; --orange: #c45c00;
+  --radius: 14px; --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; }
+.app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+.nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: rgba(245,245,243,0.96); backdrop-filter: blur(20px); border-top: 1px solid var(--border2); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+.nav-btn { flex: 1; padding: 10px 4px 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; border: none; background: none; color: var(--text3); font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.2s; }
+.nav-btn.active { color: var(--accent); }
+.nav-icon { font-size: 20px; }
+.page { display: none; flex: 1; overflow-y: auto; padding: 0 0 80px; }
+.page.active { display: block; }
+.page-header { padding: 52px 20px 14px; position: sticky; top: 0; z-index: 50; background: var(--bg); border-bottom: 1px solid var(--border); }
+.header-row { display: flex; justify-content: space-between; align-items: center; }
+.page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.page-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.sec { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.sec-title { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); }
+.pad { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+label { font-size: 11px; font-weight: 600; color: var(--text2); }
+input, select, textarea { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; font-family: 'Syne', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; width: 100%; }
+input[type=number] { font-family: 'DM Mono', monospace; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+input::placeholder, textarea::placeholder { color: var(--text3); font-size: 13px; }
+textarea { resize: none; min-height: 56px; }
+.toggle-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.toggle-btn { padding: 7px 13px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text2); font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Syne', sans-serif; transition: all 0.15s; }
+.toggle-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn { width: 100%; padding: 13px; border-radius: var(--radius); background: var(--accent); color: #fff; border: none; font-size: 14px; font-weight: 700; font-family: 'Syne', sans-serif; cursor: pointer; transition: opacity 0.15s, transform 0.12s; }
+.btn:active { transform: scale(0.97); opacity: 0.85; }
+.btn.green { background: var(--green); }
+.btn.secondary { background: transparent; color: var(--text2); border: 1px solid var(--border2); font-size: 13px; }
+.photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.photo-btn { background: var(--surface2); border: 1px dashed var(--border2); border-radius: var(--radius-sm); padding: 16px 10px; text-align: center; cursor: pointer; transition: all 0.15s; }
+.photo-btn:active { border-color: var(--accent); }
+.photo-icon { font-size: 24px; margin-bottom: 4px; }
+.photo-lbl { font-size: 12px; font-weight: 600; color: var(--text2); }
+.photo-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
+input[type=file] { display: none; }
+.ai-box { background: rgba(26,26,26,0.04); border: 1px solid rgba(26,26,26,0.15); border-radius: var(--radius-sm); padding: 12px; }
+.ai-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+.ai-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.ai-meta { font-size: 12px; color: var(--text2); }
+.filter-tabs { display: flex; gap: 6px; padding: 12px 20px 0; overflow-x: auto; scrollbar-width: none; }
+.filter-tabs::-webkit-scrollbar { display: none; }
+.ftab { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--text2); font-size: 12px; font-weight: 600; font-family: 'Syne', sans-serif; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+.ftab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.item-list { display: flex; flex-direction: column; gap: 10px; padding: 14px 20px; }
+.item-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.item-name { font-size: 14px; font-weight: 700; flex: 1; line-height: 1.3; }
+.status-badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.s-zaiko { background: rgba(26,95,168,0.12); color: var(--blue); }
+.s-listing { background: rgba(107,63,160,0.12); color: var(--purple); }
+.s-sold { background: rgba(10,124,78,0.12); color: var(--green); }
+.s-kaitori { background: rgba(196,92,0,0.12); color: var(--orange); }
+.s-hokan { background: rgba(136,136,136,0.12); color: var(--text2); }
+.item-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.im { font-size: 11px; color: var(--text2); }
+.im span { color: var(--text); font-weight: 600; }
+.item-profit { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border); margin-bottom: 8px; }
+.ip-lbl { font-size: 12px; color: var(--text2); }
+.ip-val { font-size: 16px; font-weight: 700; font-family: 'DM Mono', monospace; }
+.item-btns { display: flex; gap: 6px; }
+.ibtn { flex: 1; padding: 7px 4px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface2); color: var(--text2); font-size: 11px; font-weight: 600; font-family: 'Syne', sans-serif; cursor: pointer; text-align: center; }
+.ibtn.danger { color: var(--red); border-color: rgba(192,57,43,0.2); }
+.ibtn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.profit-box { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px; }
+.profit-total { display: flex; justify-content: space-between; align-items: baseline; }
+.profit-lbl { font-size: 13px; color: var(--text2); }
+.profit-amount { font-size: 26px; font-weight: 700; font-family: 'DM Mono', monospace; }
+.p-pos { color: var(--green); } .p-neg { color: var(--red); } .p-zero { color: var(--text3); }
+.badge-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.b-ok { background: rgba(10,124,78,0.1); color: var(--green); }
+.b-ng { background: rgba(192,57,43,0.1); color: var(--red); }
+.b-ev { background: var(--surface3); color: var(--text2); }
+.rate-txt { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text2); }
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 20px; }
+.scard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.scard.full { grid-column: span 2; }
+.scard.highlight { border-color: rgba(10,124,78,0.3); background: rgba(10,124,78,0.04); }
+.slbl { font-size: 10px; font-weight: 700; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+.sval { font-size: 20px; font-weight: 800; font-family: 'DM Mono', monospace; }
+.ssub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+.cat-bar { display: flex; flex-direction: column; gap: 8px; }
+.cat-row { display: flex; align-items: center; gap: 10px; }
+.cat-name { font-size: 12px; color: var(--text2); width: 80px; flex-shrink: 0; }
+.cat-track { flex: 1; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.cat-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+.cat-val { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text2); width: 60px; text-align: right; }
+.period-nav { display: flex; align-items: center; gap: 10px; padding: 0 20px 14px; }
+.period-btn { background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; padding: 6px 14px; color: var(--text); font-size: 18px; cursor: pointer; }
+.period-lbl { flex: 1; text-align: center; font-size: 16px; font-weight: 800; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+.modal-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-title { font-size: 16px; font-weight: 800; }
+.modal-close { background: none; border: none; color: var(--text2); font-size: 22px; cursor: pointer; }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { text-align: center; padding: 48px 20px; color: var(--text3); }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="modal-settings">
+    <div class="modal">
+      <div class="modal-hdr"><span class="modal-title">⚙️ 設定</span><button class="modal-close" onclick="closeModal('modal-settings')">✕</button></div>
+      <div class="field" style="margin-bottom:12px;"><label>APIキー（写真認識用）</label><input id="settings-key" type="password" placeholder="sk-ant-api03-..." /></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="saveSettings()">保存</button>
+        <button class="btn secondary" style="color:var(--red);" onclick="deleteKey()">削除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Listing Modal -->
+  <div class="modal-overlay" id="modal-listing">
+    <div class="modal">
+      <div class="modal-hdr"><span class="modal-title" id="listing-title">📤 出品する</span><button class="modal-close" onclick="closeModal('modal-listing')">✕</button></div>
+      <div id="listing-product-name" style="font-size:14px;font-weight:700;margin-bottom:14px;"></div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;margin-bottom:6px;">販売先</label>
+        <div class="toggle-group" id="listing-channel-group">
+          <button class="toggle-btn active" onclick="setListingChannel(this,'フリマ')">フリマ</button>
+          <button class="toggle-btn" onclick="setListingChannel(this,'買取屋')">買取屋</button>
+        </div>
+      </div>
+      <div id="listing-frima">
+        <div class="field-row" style="margin-bottom:10px;">
+          <div class="field"><label>出品先</label><select id="listing-platform"><option>メルカリ</option><option>ヤフオク</option><option>楽天</option><option>Amazon</option><option>ラクマ</option></select></div>
+          <div class="field"><label>出品価格（円）</label><input type="number" id="listing-sell" inputmode="numeric" placeholder="8000" oninput="calcListingProfit()" /></div>
+        </div>
+        <div class="field-row" style="margin-bottom:12px;">
+          <div class="field"><label>送料（円）</label><input type="number" id="listing-ship" inputmode="numeric" placeholder="210" oninput="calcListingProfit()" /></div>
+          <div class="field"><label>手数料率（%）</label><input type="number" id="listing-fee" inputmode="numeric" value="10" oninput="calcListingProfit()" /></div>
+        </div>
+      </div>
+      <div id="listing-kaitori" style="display:none;margin-bottom:12px;">
+        <div class="field"><label>買取価格（円）</label><input type="number" id="listing-kaitori-price" inputmode="numeric" placeholder="7000" oninput="calcListingProfit()" /></div>
+      </div>
+      <div class="profit-box" style="margin-bottom:14px;">
+        <div class="profit-total"><span class="profit-lbl">利益</span><span class="profit-amount p-zero" id="listing-profit">—</span></div>
+        <div class="badge-row"><span class="badge b-ev" id="listing-badge">入力待ち</span><span class="rate-txt" id="listing-rate"></span></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="saveListing(false)">📤 出品中にする</button>
+        <button class="btn green" onclick="saveListing(true)">✅ 販売済みに</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="fc-camera" accept="image/*" capture="environment" onchange="onPhoto(event)" />
+  <input type="file" id="fc-gallery" accept="image/*" onchange="onPhoto(event)" />
+
+  <!-- 仕入れページ -->
+  <div class="page active" id="page-shiire">
+    <div class="page-header">
+      <div class="header-row">
+        <div><div class="page-title">仕入れ登録</div><div class="page-sub">レシート写真 or 手入力</div></div>
+        <button onclick="openModal('modal-settings')" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Syne',sans-serif;">⚙️ 設定</button>
+      </div>
+    </div>
+    <div class="pad">
+      <div id="api-banner" style="display:none;background:rgba(26,26,26,0.04);border:1px solid rgba(26,26,26,0.15);border-radius:var(--radius);padding:14px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;">🔑 APIキーを設定</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">写真認識を使うにはAPIキーが必要です。</div>
+        <input id="banner-key" type="password" placeholder="sk-ant-api03-..." style="margin-bottom:8px;" />
+        <button class="btn" style="font-size:13px;" onclick="saveBannerKey()">保存</button>
+      </div>
+
+      <div>
+        <div class="sec-title" style="margin-bottom:8px;">レシート・商品写真</div>
+        <div class="photo-grid">
+          <div class="photo-btn" onclick="document.getElementById('fc-camera').click()"><div class="photo-icon">📷</div><div class="photo-lbl">カメラで撮る</div><div class="photo-sub">その場で撮影</div></div>
+          <div class="photo-btn" onclick="document.getElementById('fc-gallery').click()"><div class="photo-icon">🖼️</div><div class="photo-lbl">画像を選ぶ</div><div class="photo-sub">保存済みから選択</div></div>
+        </div>
+        <div id="ai-preview" style="display:none;margin-top:10px;">
+          <img id="ai-img" style="width:100%;max-height:160px;object-fit:contain;border-radius:var(--radius-sm);background:#eee;display:block;margin-bottom:8px;" />
+          <button class="btn" id="ai-btn" onclick="analyzePhoto()" style="font-size:13px;">✨ AIで商品名・価格を読み取る</button>
+        </div>
+        <div class="ai-box" id="ai-result" style="display:none;margin-top:8px;">
+          <div class="ai-lbl">✨ AI認識結果</div>
+          <div class="ai-name" id="ai-name"></div>
+          <div class="ai-meta" id="ai-meta"></div>
+        </div>
+      </div>
+
+      <div class="card"><div class="sec">
+        <div class="sec-title">基本情報</div>
+        <div class="field"><label>商品名</label><input type="text" id="s-name" placeholder="例：ニンジャスピナー BOX" /></div>
+        <div class="field-row">
+          <div class="field"><label>カテゴリー</label>
+            <select id="s-category" onchange="onCategoryChange()">
+              <option value="">選択</option><option>PMカード</option><option>OPカード</option><option>DBカード</option>
+              <option>プレバン</option><option>雑貨</option><option>家電</option><option>化粧品</option><option>その他</option>
+            </select>
+          </div>
+          <div class="field"><label>仕入れ先</label>
+            <select id="s-shop">
+              <option value="">選択</option><option>ヨドバシ</option><option>ビックカメラ</option><option>Joshin</option>
+              <option>ポケセン</option><option>カドショ</option><option>ふるいち</option>
+              <option>イオン</option><option>プレバン</option><option>リサイクルショップ</option><option>その他</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>仕入れ価格（円）</label><input type="number" id="s-cost" placeholder="5500" inputmode="numeric" /></div>
+          <div class="field"><label>数量</label><input type="number" id="s-qty" placeholder="1" value="1" inputmode="numeric" /></div>
+        </div>
+      </div></div>
+
+      <div class="card" id="card-condition" style="display:none;"><div class="sec">
+        <div class="sec-title">カード状態</div>
+        <div class="field"><label>シュリンク</label><div class="toggle-group"><button class="toggle-btn active" onclick="setToggle(this,'shrink','あり')">あり</button><button class="toggle-btn" onclick="setToggle(this,'shrink','なし')">なし</button></div></div>
+        <div class="field"><label>テープ</label><div class="toggle-group"><button class="toggle-btn active" onclick="setToggle(this,'tape','なし')">なし</button><button class="toggle-btn" onclick="setToggle(this,'tape','あり')">あり</button></div></div>
+      </div></div>
+
+      <div class="card"><div class="sec">
+        <div class="sec-title">保管設定</div>
+        <div class="field"><label>この商品の扱い</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" onclick="setToggle(this,'hokan','販売予定')">販売予定</button>
+            <button class="toggle-btn" onclick="setToggle(this,'hokan','保管')">保管（コレクション）</button>
+          </div>
+        </div>
+        <div class="field" id="yosoku-field" style="display:none;">
+          <label>予測資産額（円）</label>
+          <input type="number" id="s-yosoku" placeholder="例：10000" inputmode="numeric" />
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">売るとしたらいくらか（任意）</div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);">保管は在庫資産・予測資産の両方に含まれます</div>
+      </div></div>
+
+      <div class="field"><label>メモ</label><textarea id="s-memo" placeholder="状態・買取価格の変動など"></textarea></div>
+      <button class="btn" onclick="saveItem()">📦 在庫に登録する</button>
+    </div>
+  </div>
+
+  <!-- 在庫ページ -->
+  <div class="page" id="page-zaiko">
+    <div class="page-header"><div class="page-title">在庫・販売管理</div><div class="page-sub">登録済み商品の一覧</div></div>
+    <div class="filter-tabs">
+      <button class="ftab active" onclick="filterItems(this,'全て')">全て</button>
+      <button class="ftab" onclick="filterItems(this,'在庫')">在庫</button>
+      <button class="ftab" onclick="filterItems(this,'出品中')">出品中</button>
+      <button class="ftab" onclick="filterItems(this,'販売済')">販売済</button>
+      <button class="ftab" onclick="filterItems(this,'買取屋')">買取屋</button>
+      <button class="ftab" onclick="filterItems(this,'保管')">保管</button>
+    </div>
+    <div id="item-list" class="item-list"></div>
+  </div>
+
+  <!-- 集計ページ -->
+  <div class="page" id="page-monthly">
+    <div class="page-header"><div class="page-title">集計</div><div class="page-sub">月次・年間・在庫資産</div></div>
+    <div class="filter-tabs" id="period-tabs">
+      <button class="ftab active" onclick="setPeriodMode(this,'month')">月次</button>
+      <button class="ftab" onclick="setPeriodMode(this,'year')">年間</button>
+    </div>
+    <div id="mode-month">
+      <div class="period-nav">
+        <button class="period-btn" onclick="changeMonth(-1)">‹</button>
+        <div class="period-lbl" id="monthly-period">—</div>
+        <button class="period-btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="summary-grid" id="summary-grid"></div>
+      <div class="pad" style="padding-top:0;"><div class="card"><div class="sec"><div class="sec-title">カテゴリー別利益</div><div class="cat-bar" id="cat-bar"></div></div></div></div>
+    </div>
+    <div id="mode-year" style="display:none;">
+      <div class="period-nav">
+        <button class="period-btn" onclick="changeYear(-1)">‹</button>
+        <div class="period-lbl" id="yearly-period">—</div>
+        <button class="period-btn" onclick="changeYear(1)">›</button>
+      </div>
+      <div class="summary-grid" id="year-summary-grid"></div>
+      <div class="pad" style="padding-top:0;">
+        <div class="card"><div class="sec"><div class="sec-title">月別利益推移</div><div class="cat-bar" id="month-bar"></div></div></div>
+        <div class="card"><div class="sec"><div class="sec-title">カテゴリー別利益（年間）</div><div class="cat-bar" id="year-cat-bar"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showPage('shiire',this)"><span class="nav-icon">📦</span>仕入れ</button>
+    <button class="nav-btn" onclick="showPage('zaiko',this)"><span class="nav-icon">📋</span>在庫</button>
+    <button class="nav-btn" onclick="showPage('monthly',this)"><span class="nav-icon">📊</span>集計</button>
+  </nav>
+</div>
+
+<script>
+const STORAGE_KEY='buhin_items', API_KEY_STORE='buhin_api_key';
+let currentFilter='全て', currentShrink='あり', currentTape='なし', currentHokan='販売予定';
+let currentImageBase64=null, listingItemId=null, listingChannel='フリマ';
+let periodMode='month', currentYear=new Date().getFullYear(), currentMonth=new Date().getMonth()+1, currentYearView=new Date().getFullYear();
+
+window.onload=()=>{
+  if(!localStorage.getItem(API_KEY_STORE)) document.getElementById('api-banner').style.display='block';
+  renderItems(); renderSummary();
+};
+
+function showPage(page,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active'); btn.classList.add('active');
+  if(page==='zaiko') renderItems();
+  if(page==='monthly') periodMode==='month'?renderSummary():renderYearSummary();
+}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function saveSettings(){
+  const k=document.getElementById('settings-key').value.trim();
+  if(!k){closeModal('modal-settings');return;}
+  if(!k.startsWith('sk-ant-')){alert('正しいAPIキーを入力してください');return;}
+  localStorage.setItem(API_KEY_STORE,k);
+  document.getElementById('api-banner').style.display='none';
+  closeModal('modal-settings'); alert('保存しました！');
+}
+function deleteKey(){
+  if(!confirm('APIキーを削除しますか？'))return;
+  localStorage.removeItem(API_KEY_STORE);
+  document.getElementById('api-banner').style.display='block';
+  closeModal('modal-settings');
+}
+function saveBannerKey(){
+  const k=document.getElementById('banner-key').value.trim();
+  if(!k.startsWith('sk-ant-')){alert('正しいAPIキーを入力してください');return;}
+  localStorage.setItem(API_KEY_STORE,k);
+  document.getElementById('api-banner').style.display='none';
+}
+
+function setToggle(btn,type,val){
+  btn.closest('.toggle-group').querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(type==='shrink') currentShrink=val;
+  if(type==='tape') currentTape=val;
+  if(type==='hokan'){
+    currentHokan=val;
+    const yf=document.getElementById('yosoku-field');
+    if(yf) yf.style.display=val==='保管'?'flex':'none';
+  }
+}
+function onCategoryChange(){
+  const v=document.getElementById('s-category').value;
+  document.getElementById('card-condition').style.display=['PMカード','OPカード','DBカード'].includes(v)?'block':'none';
+}
+
+function onPhoto(e){
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      const MAX=1200; let w=img.width,h=img.height;
+      if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+      canvas.width=w; canvas.height=h; canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const compressed=canvas.toDataURL('image/jpeg',0.8);
+      currentImageBase64=compressed.split(',')[1];
+      document.getElementById('ai-img').src=compressed;
+      document.getElementById('ai-preview').style.display='block';
+      document.getElementById('ai-result').style.display='none';
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzePhoto(){
+  const apiKey=localStorage.getItem(API_KEY_STORE);
+  if(!apiKey){document.getElementById('api-banner').style.display='block';return;}
+  const btn=document.getElementById('ai-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 解析中...';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:currentImageBase64}},
+          {type:'text',text:'このレシートまたは商品画像から情報を読み取ってください。JSONのみで返してください。\n{"name":"商品名","price":数値またはnull,"shop":"店舗名またはnull","category":"PMカード/OPカード/DBカード/プレバン/雑貨/家電/化粧品/その他","note":"補足1文"}'}
+        ]}]
+      })
+    });
+    const data=await res.json();
+    if(data.error) throw new Error(data.error.message);
+    const parsed=JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
+    if(parsed.name) document.getElementById('s-name').value=parsed.name;
+    if(parsed.price) document.getElementById('s-cost').value=parsed.price;
+    if(parsed.shop){const sel=document.getElementById('s-shop');for(let i=0;i<sel.options.length;i++){if(sel.options[i].text.includes(parsed.shop)){sel.selectedIndex=i;break;}}}
+    if(parsed.category){const sel=document.getElementById('s-category');for(let i=0;i<sel.options.length;i++){if(sel.options[i].text===parsed.category){sel.selectedIndex=i;sel.dispatchEvent(new Event('change'));break;}}}
+    document.getElementById('ai-name').textContent=parsed.name||'不明';
+    document.getElementById('ai-meta').textContent=[parsed.price?'¥'+parsed.price.toLocaleString():null,parsed.shop,parsed.note].filter(Boolean).join(' · ');
+    document.getElementById('ai-result').style.display='block';
+  }catch(err){alert('認識エラー：'+err.message);}
+  finally{btn.disabled=false;btn.innerHTML='✨ AIで商品名・価格を読み取る';}
+}
+
+function saveItem(){
+  const name=document.getElementById('s-name').value.trim();
+  if(!name){alert('商品名を入力してください');return;}
+  const item={
+    id:Date.now(),date:new Date().toISOString().slice(0,10),name,
+    category:document.getElementById('s-category').value,
+    shop:document.getElementById('s-shop').value,
+    cost:parseFloat(document.getElementById('s-cost').value)||0,
+    qty:parseInt(document.getElementById('s-qty').value)||1,
+    shrink:currentShrink,tape:currentTape,hokan:currentHokan,
+    yosoku:parseFloat(document.getElementById('s-yosoku').value)||0,
+    memo:document.getElementById('s-memo').value,
+    status:currentHokan==='保管'?'保管':'在庫',
+    sell:0,ship:0,feeRate:10,feeAmt:0,profit:0,rate:0,platform:'',channel:''
+  };
+  const items=getItems(); items.unshift(item);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(items));
+  ['s-name','s-cost','s-memo','s-yosoku'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('s-qty').value='1';
+  document.getElementById('s-category').value='';
+  document.getElementById('s-shop').value='';
+  document.getElementById('card-condition').style.display='none';
+  document.getElementById('ai-preview').style.display='none';
+  document.getElementById('ai-result').style.display='none';
+  currentImageBase64=null; currentHokan='販売予定';
+  alert('✅ 登録しました！');
+}
+
+function getItems(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch{return[];}}
+
+function filterItems(btn,filter){
+  document.querySelectorAll('#page-zaiko .ftab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); currentFilter=filter; renderItems();
+}
+
+function statusClass(s){return{'在庫':'s-zaiko','出品中':'s-listing','販売済':'s-sold','買取屋':'s-kaitori','保管':'s-hokan'}[s]||'';}
+
+function renderItems(){
+  const items=getItems();
+  const filtered=currentFilter==='全て'?items:items.filter(i=>i.status===currentFilter);
+  const list=document.getElementById('item-list');
+  if(!filtered.length){list.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">登録された商品はありません</div></div>';return;}
+  const isCard=item=>['PMカード','OPカード','DBカード'].includes(item.category);
+  list.innerHTML=filtered.map(item=>`
+    <div class="item-card">
+      <div class="item-top"><div class="item-name">${item.name}</div><span class="status-badge ${statusClass(item.status)}">${item.status}</span></div>
+      <div class="item-meta">
+        <div class="im">仕入れ <span>¥${item.cost.toLocaleString()}</span></div>
+        ${(item.qty||1)>1?`<div class="im">数量 <span>${item.qty}個</span></div>`:''}
+        ${item.sell?`<div class="im">販売価格 <span>¥${item.sell.toLocaleString()}</span></div>`:''}
+        ${item.yosoku?`<div class="im">予測資産 <span>¥${item.yosoku.toLocaleString()}</span></div>`:''}
+        ${item.platform?`<div class="im">販売先 <span>${item.platform}</span></div>`:''}
+        ${item.category?`<div class="im"><span>${item.category}</span></div>`:''}
+        ${item.shop?`<div class="im">仕入れ先 <span>${item.shop}</span></div>`:''}
+        ${isCard(item)?`<div class="im">シュリ <span>${item.shrink||'—'}</span> テープ <span>${item.tape||'—'}</span></div>`:''}
+      </div>
+      ${item.sell?`<div class="item-profit"><span class="ip-lbl">利益 (${item.rate}%)</span><span class="ip-val ${item.profit>=0?'p-pos':'p-neg'}">${item.profit>=0?'+':''}¥${item.profit.toLocaleString()}</span></div>`:''}
+      <div class="item-btns">
+        ${item.status==='在庫'?`<button class="ibtn primary" onclick="openListingModal(${item.id})">📤 出品する</button>`:''}
+        ${(item.status==='出品中'||item.status==='買取屋')?`<button class="ibtn" onclick="openListingModal(${item.id})">✏️ 変更</button>`:''}
+        ${(item.status==='出品中'||item.status==='買取屋')?`<button class="ibtn" style="color:var(--green);" onclick="quickSold(${item.id})">✅ 販売済</button>`:''}
+        <button class="ibtn danger" onclick="deleteItem(${item.id})">🗑</button>
+      </div>
+      ${item.memo?`<div style="font-size:11px;color:var(--text3);margin-top:6px;">${item.memo}</div>`:''}
+    </div>`).join('');
+}
+
+function quickSold(id){
+  const items=getItems();const i=items.findIndex(x=>x.id===id);
+  if(i>=0){items[i].status='販売済';localStorage.setItem(STORAGE_KEY,JSON.stringify(items));renderItems();}
+}
+function deleteItem(id){
+  if(!confirm('削除しますか？'))return;
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(getItems().filter(x=>x.id!==id)));
+  renderItems();
+}
+
+function setListingChannel(btn,ch){
+  listingChannel=ch;
+  btn.closest('.toggle-group').querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('listing-frima').style.display=ch==='フリマ'?'block':'none';
+  document.getElementById('listing-kaitori').style.display=ch==='買取屋'?'block':'none';
+  calcListingProfit();
+}
+
+function calcListingProfit(){
+  const items=getItems();const item=items.find(x=>x.id===listingItemId);if(!item)return;
+  const cost=item.cost||0;let sell=0,ship=0,feeRate=0;
+  if(listingChannel==='フリマ'){sell=parseFloat(document.getElementById('listing-sell').value)||0;ship=parseFloat(document.getElementById('listing-ship').value)||0;feeRate=parseFloat(document.getElementById('listing-fee').value)||0;}
+  else{sell=parseFloat(document.getElementById('listing-kaitori-price').value)||0;}
+  if(!sell)return;
+  const feeAmt=Math.round(sell*feeRate/100),profit=sell-cost-ship-feeAmt,rate=sell>0?Math.round(profit/sell*100):0;
+  const el=document.getElementById('listing-profit');
+  el.textContent=(profit>=0?'+':'')+'¥'+profit.toLocaleString();
+  el.className='profit-amount '+(profit>0?'p-pos':profit<0?'p-neg':'p-zero');
+  const badge=document.getElementById('listing-badge');
+  badge.className='badge '+(profit>0?'b-ok':profit<0?'b-ng':'b-ev');
+  badge.textContent=profit>0?'利益あり':profit<0?'赤字':'トントン';
+  document.getElementById('listing-rate').textContent='利益率 '+rate+'%';
+}
+
+function openListingModal(id){
+  const items=getItems();const item=items.find(x=>x.id===id);if(!item)return;
+  listingItemId=id;listingChannel=item.channel==='買取屋'?'買取屋':'フリマ';
+  document.getElementById('listing-title').textContent=item.status==='在庫'?'📤 出品する':'✏️ 価格変更';
+  document.getElementById('listing-product-name').textContent=item.name;
+  document.getElementById('listing-sell').value=item.sell||'';
+  document.getElementById('listing-ship').value=item.ship||'';
+  document.getElementById('listing-fee').value=item.feeRate||10;
+  document.getElementById('listing-kaitori-price').value=item.sell||'';
+  document.getElementById('listing-profit').textContent='—';
+  document.getElementById('listing-profit').className='profit-amount p-zero';
+  document.getElementById('listing-badge').textContent='入力待ち';
+  document.getElementById('listing-badge').className='badge b-ev';
+  document.getElementById('listing-rate').textContent='';
+  const group=document.getElementById('listing-channel-group');
+  group.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  group.querySelectorAll('.toggle-btn')[listingChannel==='買取屋'?1:0].classList.add('active');
+  document.getElementById('listing-frima').style.display=listingChannel==='フリマ'?'block':'none';
+  document.getElementById('listing-kaitori').style.display=listingChannel==='買取屋'?'block':'none';
+  openModal('modal-listing');
+}
+
+function saveListing(markAsSold){
+  if(!listingItemId)return;
+  const items=getItems();const i=items.findIndex(x=>x.id===listingItemId);if(i<0)return;
+  const cost=items[i].cost||0;let sell=0,ship=0,feeRate=0,feeAmt=0,platform='';
+  if(listingChannel==='フリマ'){sell=parseFloat(document.getElementById('listing-sell').value)||0;ship=parseFloat(document.getElementById('listing-ship').value)||0;feeRate=parseFloat(document.getElementById('listing-fee').value)||0;feeAmt=Math.round(sell*feeRate/100);platform=document.getElementById('listing-platform').value;}
+  else{sell=parseFloat(document.getElementById('listing-kaitori-price').value)||0;platform='買取屋';}
+  const profit=sell-cost-ship-feeAmt,rate=sell>0?Math.round(profit/sell*100):0;
+  items[i]={...items[i],sell,ship,feeRate,feeAmt,profit,rate,platform,channel:listingChannel,status:markAsSold?'販売済':(listingChannel==='買取屋'?'買取屋':'出品中')};
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(items));
+  closeModal('modal-listing');renderItems();
+}
+
+// 集計
+function setPeriodMode(btn,mode){
+  document.querySelectorAll('#period-tabs .ftab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');periodMode=mode;
+  document.getElementById('mode-month').style.display=mode==='month'?'block':'none';
+  document.getElementById('mode-year').style.display=mode==='year'?'block':'none';
+  mode==='month'?renderSummary():renderYearSummary();
+}
+function changeMonth(d){currentMonth+=d;if(currentMonth>12){currentMonth=1;currentYear++;}if(currentMonth<1){currentMonth=12;currentYear--;}renderSummary();}
+function changeYear(d){currentYearView+=d;renderYearSummary();}
+
+function calcStats(items){
+  const allItems=getItems();
+  const soldItems=items.filter(i=>i.status==='販売済'||i.status==='買取屋');
+  const totalSell=soldItems.reduce((s,i)=>s+(i.sell||0),0);
+  const totalProfit=soldItems.reduce((s,i)=>s+(i.profit||0),0);
+  const totalCost=items.reduce((s,i)=>s+(i.cost*(i.qty||1)),0);
+  const totalExpense=soldItems.reduce((s,i)=>s+(i.ship||0)+(i.feeAmt||0),0);
+  const profitRate=totalSell>0?Math.round(totalProfit/totalSell*100):0;
+
+  // 在庫資産：在庫・出品中・保管の仕入れ価格合計（全期間）
+  const zaikoAsset=allItems.filter(i=>['在庫','出品中','保管'].includes(i.status)).reduce((s,i)=>s+(i.cost*(i.qty||1)),0);
+
+  // 予測資産：出品中の出品価格 + 買取屋の買取価格 + 保管の仕入れ価格 + 在庫の仕入れ価格
+  const listingAsset=allItems.filter(i=>i.status==='出品中').reduce((s,i)=>s+(i.sell||0),0);
+  const kaitoriAsset=allItems.filter(i=>i.status==='買取屋').reduce((s,i)=>s+(i.sell||0),0);
+  const hokanAsset=allItems.filter(i=>i.status==='保管').reduce((s,i)=>s+((i.yosoku>0?i.yosoku:i.cost)*(i.qty||1)),0);
+  const zaikoOnly=allItems.filter(i=>i.status==='在庫').reduce((s,i)=>s+(i.cost*(i.qty||1)),0);
+  const yosokuAsset=listingAsset+kaitoriAsset+hokanAsset+zaikoOnly;
+  const yosokuProfit=yosokuAsset-zaikoAsset;
+  const yosokuRate=yosokuAsset>0?Math.round(yosokuProfit/yosokuAsset*100):0;
+
+  return{soldItems,totalSell,totalProfit,totalCost,totalExpense,profitRate,zaikoAsset,yosokuAsset,yosokuProfit,yosokuRate};
+}
+
+function renderSummaryGrid(gridId,stats,label){
+  const{totalSell,totalProfit,totalCost,totalExpense,profitRate,zaikoAsset,yosokuAsset,yosokuProfit,yosokuRate,soldItems}=stats;
+  document.getElementById(gridId).innerHTML=`
+    <div class="scard full highlight">
+      <div class="slbl">${label}利益</div>
+      <div class="sval ${totalProfit>=0?'p-pos':'p-neg'}">${totalProfit>=0?'+':''}¥${totalProfit.toLocaleString()}</div>
+      <div class="ssub">利益率 ${profitRate}% ／ ${soldItems.length}件販売</div>
+    </div>
+    <div class="scard"><div class="slbl">総売上</div><div class="sval">¥${totalSell.toLocaleString()}</div></div>
+    <div class="scard"><div class="slbl">総仕入れ</div><div class="sval">¥${totalCost.toLocaleString()}</div></div>
+    <div class="scard full"><div class="slbl">経費合計（送料＋手数料）</div><div class="sval">¥${totalExpense.toLocaleString()}</div></div>
+    <div class="scard"><div class="slbl">在庫資産</div><div class="sval">¥${zaikoAsset.toLocaleString()}</div><div class="ssub">仕入れ価格合計</div></div>
+    <div class="scard"><div class="slbl">予測資産</div><div class="sval">¥${yosokuAsset.toLocaleString()}</div><div class="ssub">出品＋買取＋保管＋在庫</div></div>
+    <div class="scard full highlight">
+      <div class="slbl">暫定利益（予測）</div>
+      <div class="sval ${yosokuProfit>=0?'p-pos':'p-neg'}">${yosokuProfit>=0?'+':''}¥${yosokuProfit.toLocaleString()}</div>
+      <div class="ssub">暫定利益率 ${yosokuRate}%</div>
+    </div>
+  `;
+}
+
+function renderCatBar(barId,soldItems){
+  const cats={};
+  soldItems.forEach(i=>{const c=i.category||'その他';cats[c]=(cats[c]||0)+(i.profit||0);});
+  const maxP=Math.max(...Object.values(cats),1);
+  document.getElementById(barId).innerHTML=Object.keys(cats).length===0
+    ?'<div style="font-size:12px;color:var(--text3);">販売済みデータなし</div>'
+    :Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([cat,p])=>
+      `<div class="cat-row"><span class="cat-name">${cat}</span><div class="cat-track"><div class="cat-fill" style="width:${Math.max(0,p/maxP*100)}%;background:${p>=0?'var(--accent)':'var(--red)'}"></div></div><span class="cat-val ${p>=0?'p-pos':'p-neg'}">${p>=0?'+':''}¥${Math.abs(p).toLocaleString()}</span></div>`
+    ).join('');
+}
+
+function renderSummary(){
+  const ym=currentYear+'-'+String(currentMonth).padStart(2,'0');
+  document.getElementById('monthly-period').textContent=currentYear+'年'+currentMonth+'月';
+  const items=getItems().filter(i=>i.date&&i.date.startsWith(ym));
+  const stats=calcStats(items);renderSummaryGrid('summary-grid',stats,'当月');renderCatBar('cat-bar',stats.soldItems);
+}
+
+function renderYearSummary(){
+  document.getElementById('yearly-period').textContent=currentYearView+'年';
+  const items=getItems().filter(i=>i.date&&i.date.startsWith(String(currentYearView)));
+  const stats=calcStats(items);renderSummaryGrid('year-summary-grid',stats,'年間');renderCatBar('year-cat-bar',stats.soldItems);
+  const monthData=Array.from({length:12},(_,i)=>i+1).map(m=>{
+    const ym=currentYearView+'-'+String(m).padStart(2,'0');
+    const mi=getItems().filter(i=>i.date&&i.date.startsWith(ym)&&(i.status==='販売済'||i.status==='買取屋'));
+    return{m,profit:mi.reduce((s,i)=>s+(i.profit||0),0)};
+  }).filter(x=>x.profit!==0);
+  const maxP=Math.max(...monthData.map(x=>Math.abs(x.profit)),1);
+  document.getElementById('month-bar').innerHTML=monthData.length===0
+    ?'<div style="font-size:12px;color:var(--text3);">データなし</div>'
+    :monthData.map(({m,profit})=>
+      `<div class="cat-row"><span class="cat-name">${m}月</span><div class="cat-track"><div class="cat-fill" style="width:${Math.abs(profit)/maxP*100}%;background:${profit>=0?'var(--accent)':'var(--red)'}"></div></div><span class="cat-val ${profit>=0?'p-pos':'p-neg'}">${profit>=0?'+':''}¥${Math.abs(profit).toLocaleString()}</span></div>`
+    ).join('');
+}
+</script>
+</body>
+</html>
