@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="リサーチAI">
+<title>リサーチAIツール</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f5f3;
+  --surface: #ffffff;
+  --surface2: #efefed;
+  --border: rgba(0,0,0,0.07);
+  --border2: rgba(0,0,0,0.13);
+  --text: #111111;
+  --text2: #888888;
+  --text3: #bbbbbb;
+  --accent: #1a1a1a;
+  --accent-dim: rgba(26,26,26,0.06);
+  --red: #c0392b;
+  --red-dim: rgba(192,57,43,0.1);
+  --green: #0a7c4e;
+  --green-dim: rgba(10,124,78,0.1);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; }
+
+.app { max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+.header { padding: 52px 20px 16px; background: var(--bg); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--border); }
+.header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.app-name { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; text-transform: none; }
+.ai-badge { font-size: 10px; font-weight: 600; background: var(--accent-dim); color: var(--accent); padding: 2px 8px; border-radius: 20px; letter-spacing: 0.05em; }
+.header-sub { font-size: 12px; color: var(--text3); }
+
+.content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+
+.section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+
+/* Upload area */
+.upload-area {
+  border: 1.5px dashed var(--border2); border-radius: var(--radius);
+  padding: 28px 20px; text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s; position: relative; overflow: hidden;
+  background: var(--surface);
+}
+.upload-area:hover, .upload-area.drag { border-color: var(--accent); background: var(--accent-dim); }
+.upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.upload-icon { font-size: 32px; margin-bottom: 8px; }
+.upload-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.upload-sub { font-size: 12px; color: var(--text2); }
+
+/* Preview */
+.preview-wrap { position: relative; border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.preview-img { width: 100%; max-height: 220px; object-fit: contain; display: block; background: #111; }
+.preview-remove { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: rgba(0,0,0,0.7); border: 1px solid var(--border2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text); }
+
+/* Analyze button */
+.analyze-btn {
+  width: 100%; padding: 15px; border-radius: var(--radius);
+  background: var(--accent); color: #0f0f0f; border: none;
+  font-size: 15px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: opacity 0.15s, transform 0.12s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.analyze-btn:active { transform: scale(0.97); opacity: 0.85; }
+.analyze-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* Result card */
+.result-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.result-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.result-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.result-title { font-size: 12px; font-weight: 600; color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase; }
+.result-body { padding: 16px; }
+.product-name { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 8px; }
+.product-meta { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.loading-text { font-size: 14px; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Search buttons */
+.search-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.search-btn {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 12px; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+  text-align: left; display: flex; flex-direction: column; gap: 5px;
+}
+.search-btn:active { transform: scale(0.96); }
+.search-btn-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.search-btn-desc { font-size: 11px; color: var(--text2); line-height: 1.4; }
+.search-btn-icon { font-size: 18px; }
+
+.search-btn.amazon { border-color: rgba(255,168,0,0.2); }
+.search-btn.amazon:hover { border-color: rgba(255,168,0,0.5); background: rgba(255,168,0,0.05); }
+.search-btn.mercari-sold { border-color: rgba(255,71,87,0.2); }
+.search-btn.mercari-sold:hover { border-color: rgba(255,71,87,0.5); background: rgba(255,71,87,0.05); }
+.search-btn.mercari-new { border-color: rgba(255,71,87,0.1); }
+.search-btn.yahoo { border-color: rgba(102,102,255,0.2); }
+.search-btn.yahoo:hover { border-color: rgba(102,102,255,0.5); background: rgba(102,102,255,0.05); }
+.search-btn.rakuten { border-color: rgba(191,0,0,0.2); }
+.search-btn.rakuten:hover { border-color: rgba(191,0,0,0.5); background: rgba(191,0,0,0.05); }
+
+/* Keyword manual input */
+.manual-row { display: flex; gap: 8px; }
+.manual-input { flex: 1; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 11px 14px; font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; }
+.manual-input:focus { border-color: var(--accent); }
+.manual-input::placeholder { color: var(--text3); }
+.manual-btn { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 0 14px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; white-space: nowrap; }
+.manual-btn:active { opacity: 0.7; }
+
+/* Calc */
+.calc-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.calc-fields { padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field-label { font-size: 11px; font-weight: 500; color: var(--text2); }
+.field input { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 15px; font-family: 'DM Mono', monospace; color: var(--text); outline: none; transition: border-color 0.2s; width: 100%; }
+.field input:focus { border-color: var(--accent); }
+.field input::placeholder { color: var(--text3); font-size: 13px; }
+.calc-result { border-top: 1px solid var(--border); padding: 16px; }
+.calc-rows { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.calc-row { display: flex; justify-content: space-between; font-size: 13px; }
+.calc-row-label { color: var(--text2); }
+.calc-row-val { font-family: 'DM Mono', monospace; color: var(--text); }
+.profit-line { display: flex; justify-content: space-between; align-items: baseline; }
+.profit-lbl { font-size: 13px; color: var(--text2); }
+.profit-val { font-size: 26px; font-weight: 600; font-family: 'DM Mono', monospace; transition: color 0.3s; }
+.p-neutral { color: var(--text3); }
+.p-pos { color: var(--green); }
+.p-neg { color: var(--red); }
+.badge-row { margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+.badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; }
+.b-ok { background: var(--green-dim); color: var(--green); }
+.b-ng { background: var(--red-dim); color: var(--red); }
+.b-ev { background: var(--surface2); color: var(--text2); }
+.rate-val { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text2); }
+
+.fee-note { font-size: 11px; color: var(--text3); line-height: 1.6; }
+.safe-bottom { height: 32px; }
+
+/* API key setup */
+.setup-card { background: var(--surface); border: 1px solid rgba(200,255,0,0.2); border-radius: var(--radius); padding: 16px; }
+.setup-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+.setup-desc { font-size: 12px; color: var(--text2); margin-bottom: 12px; line-height: 1.5; }
+.setup-input { width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text); outline: none; margin-bottom: 10px; }
+.setup-input:focus { border-color: var(--accent); }
+.setup-save { width: 100%; padding: 11px; border-radius: var(--radius-sm); background: var(--accent); color: #ffffff; border: none; font-size: 13px; font-weight: 700; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-row">
+      <span class="app-name">リサーチAIツール</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="ai-badge">AI搭載</span>
+        <button onclick="openSettings()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:3px 10px;font-size:12px;color:var(--text2);cursor:pointer;">⚙️ 設定</button>
+      </div>
+    </div>
+    <div class="header-sub">📷 写真 → 🤖 AI認識 → 🔍 相場検索</div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:flex-end;justify-content:center;padding:0;">
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;width:100%;max-width:390px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span style="font-size:15px;font-weight:600;color:var(--text);">⚙️ APIキー設定</span>
+        <button onclick="closeSettings()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">✕</button>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">新しいAPIキーを入力して保存してください。</div>
+      <input class="setup-input" id="settings-api-input" type="password" placeholder="sk-ant-api03-..." style="margin-bottom:10px;" />
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveFromSettings()" style="flex:1;padding:11px;border-radius:var(--radius-sm);background:var(--accent);color:#0f0f0f;border:none;font-size:13px;font-weight:700;cursor:pointer;">保存</button>
+        <button onclick="deleteApiKey()" style="padding:11px 14px;border-radius:var(--radius-sm);background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,92,0.3);font-size:13px;font-weight:600;cursor:pointer;">削除</button>
+      </div>
+      <div id="settings-status" style="margin-top:10px;font-size:12px;color:var(--green);display:none;"></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- API Key Setup (shown if no key) -->
+    <div class="setup-card" id="setup-section" style="display:none;">
+      <div class="setup-title">🔑 APIキーを設定</div>
+      <div class="setup-desc">写真認識機能を使うためにAPIキーを入力してください。入力後はこのデバイスに保存されます。</div>
+      <input class="setup-input" id="api-key-input" type="password" placeholder="sk-ant-api03-..." />
+      <button class="setup-save" onclick="saveApiKey()">保存して使い始める</button>
+    </div>
+
+    <!-- Photo Upload -->
+    <div>
+      <div class="section-label">写真で商品認識</div>
+      <!-- hidden inputs -->
+      <input type="file" accept="image/*" capture="environment" onchange="onFile(event)" id="file-camera" style="display:none;" />
+      <input type="file" accept="image/*" onchange="onFile(event)" id="file-gallery" style="display:none;" />
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="upload-area">
+        <div class="upload-area" onclick="document.getElementById('file-camera').click()" style="cursor:pointer;">
+          <div class="upload-icon">📷</div>
+          <div class="upload-title" style="font-size:13px;">カメラで撮る</div>
+          <div class="upload-sub">その場で撮影</div>
+        </div>
+        <div class="upload-area" onclick="document.getElementById('file-gallery').click()" style="cursor:pointer;">
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-title" style="font-size:13px;">画像を選ぶ</div>
+          <div class="upload-sub">保存済みから選択</div>
+        </div>
+      </div>
+      <div class="preview-wrap" id="preview-wrap" style="display:none; margin-top:10px;">
+        <img id="preview-img" class="preview-img" />
+        <button class="preview-remove" onclick="removeImage()">✕</button>
+      </div>
+    </div>
+
+    <button class="analyze-btn" id="analyze-btn" onclick="analyze()" disabled>
+      検索
+    </button>
+
+    <!-- Result -->
+    <div class="result-card" id="result-card" style="display:none;">
+      <div class="result-header">
+        <div class="result-dot"></div>
+        <span class="result-title">認識結果</span>
+      </div>
+      <div class="result-body" id="result-body"></div>
+    </div>
+
+    <!-- Search buttons -->
+    <div>
+      <div class="section-label">相場を確認</div>
+      <div style="margin-bottom:10px;">
+        <div class="manual-row">
+          <input class="manual-input" id="keyword" placeholder="検索" />
+          <button class="manual-btn" onclick="setKeyword()">セット</button>
+        </div>
+      </div>
+      <div class="search-grid">
+        <button class="search-btn amazon" onclick="openAmazon()">
+          <div class="search-btn-icon">📦</div>
+          <div class="search-btn-name">Amazon</div>
+          <div class="search-btn-desc">新品・中古の売値を確認</div>
+        </button>
+        <button class="search-btn mercari-sold" onclick="openMercariSold()">
+          <div class="search-btn-icon">✅</div>
+          <div class="search-btn-name">メルカリ売れ済み</div>
+          <div class="search-btn-desc">実際に売れた価格</div>
+        </button>
+        <button class="search-btn mercari-new" onclick="openMercariNew()">
+          <div class="search-btn-icon">🏷️</div>
+          <div class="search-btn-name">メルカリ出品中</div>
+          <div class="search-btn-desc">今の競合・相場</div>
+        </button>
+        <button class="search-btn yahoo" onclick="openYahoo()">
+          <div class="search-btn-icon">🔨</div>
+          <div class="search-btn-name">ヤフオク落札済</div>
+          <div class="search-btn-desc">オークション相場</div>
+        </button>
+        <button class="search-btn rakuten" onclick="openRakuten()" style="grid-column: span 2;">
+          <div class="search-btn-icon">🛒</div>
+          <div class="search-btn-name">楽天市場</div>
+          <div class="search-btn-desc">新品の定価・相場を確認（仕入れ値の基準に）</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- 仕入れ先価格比較 -->
+    <div>
+      <div class="section-label">仕入れ先を比較</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button class="search-btn" onclick="fetchPrices()" style="flex:1;background:var(--accent);color:#fff;border-color:var(--accent);flex-direction:row;align-items:center;gap:8px;justify-content:center;padding:12px;">
+          <span style="font-size:16px;">🔍</span>
+          <div>
+            <div class="search-btn-name" style="color:#fff;">楽天・Yahoo価格を取得</div>
+            <div class="search-btn-desc" style="color:rgba(255,255,255,0.7);">最安値を自動で比較</div>
+          </div>
+        </button>
+      </div>
+      <div id="price-result" style="display:none;">
+        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;">
+          <div style="padding:12px 14px;border-bottom:1px solid var(--border2);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.08em;text-transform:uppercase;">価格比較結果</div>
+          <div id="price-list" style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+      </div>
+      <div id="price-loading" style="display:none;text-align:center;padding:16px;font-size:13px;color:var(--text2);">
+        <div class="spinner" style="margin:0 auto 8px;"></div>価格を取得中...
+      </div>
+    </div>
+
+    <!-- Profit Calc -->
+    <div>
+      <div class="section-label">利益計算</div>
+      <div class="calc-card">
+        <div class="calc-fields">
+          <div class="field">
+            <span class="field-label">仕入れ値（円）</span>
+            <input type="number" id="cost" placeholder="3000" inputmode="numeric" oninput="calc()" />
+          </div>
+          <div class="field">
+            <span class="field-label">売値（円）</span>
+            <input type="number" id="sell" placeholder="6000" inputmode="numeric" oninput="calc()" />
+          </div>
+          <div class="field">
+            <span class="field-label">送料（円）</span>
+            <input type="number" id="ship" placeholder="600" inputmode="numeric" oninput="calc()" />
+          </div>
+          <div class="field">
+            <span class="field-label">手数料率（%）</span>
+            <input type="number" id="fee" placeholder="10" value="10" inputmode="numeric" oninput="calc()" />
+          </div>
+        </div>
+        <div class="calc-result">
+          <div class="calc-rows">
+            <div class="calc-row"><span class="calc-row-label">手数料</span><span class="calc-row-val" id="r-fee">—</span></div>
+            <div class="calc-row"><span class="calc-row-label">合計コスト</span><span class="calc-row-val" id="r-cost">—</span></div>
+          </div>
+          <div class="profit-line">
+            <span class="profit-lbl">利益</span>
+            <span class="profit-val p-neutral" id="r-profit">—</span>
+          </div>
+          <div class="badge-row">
+            <span class="badge b-ev" id="r-badge">入力待ち</span>
+            <span class="rate-val" id="r-rate"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="fee-note">手数料率の目安：メルカリ 10% ／ Amazon 約15% ／ ヤフオク 8.8%</p>
+    <div class="safe-bottom"></div>
+  </div>
+</div>
+
+<script>
+const API_KEY_STORAGE = 'resale_api_key';
+let currentImageBase64 = null;
+let currentKeyword = '';
+
+// Init
+window.onload = () => {
+  const saved = localStorage.getItem(API_KEY_STORAGE);
+  if (!saved) {
+    document.getElementById('setup-section').style.display = 'block';
+  }
+};
+
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key.startsWith('sk-ant-')) { alert('正しいAPIキーを入力してください（sk-ant-で始まる文字列）'); return; }
+  localStorage.setItem(API_KEY_STORAGE, key);
+  document.getElementById('setup-section').style.display = 'none';
+  alert('APIキーを保存しました！');
+}
+
+function getApiKey() {
+  return localStorage.getItem(API_KEY_STORAGE) || '';
+}
+
+// Image handling
+function onFile(e) {
+  const file = e.target.files[0];
+  if (file) loadImage(file);
+}
+function onDrag(e, active) {
+  e.preventDefault();
+  document.getElementById('upload-area').classList.toggle('drag', active);
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-area').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadImage(file);
+}
+function loadImage(file) {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.8);
+      currentImageBase64 = compressed.split(',')[1];
+      document.getElementById('preview-img').src = compressed;
+      document.getElementById('preview-wrap').style.display = 'block';
+      document.getElementById('upload-area').style.display = 'none';
+      document.getElementById('analyze-btn').disabled = false;
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function removeImage() {
+  currentImageBase64 = null;
+  document.getElementById('preview-wrap').style.display = 'none';
+  document.getElementById('upload-area').style.display = 'grid';
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('result-card').style.display = 'none';
+  document.getElementById('file-camera').value = '';
+  document.getElementById('file-gallery').value = '';
+}
+
+// AI Analysis
+async function analyze() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    document.getElementById('setup-section').style.display = 'block';
+    document.getElementById('setup-section').scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+  if (!currentImageBase64) return;
+
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div><span>認識中...</span>';
+
+  const card = document.getElementById('result-card');
+  const body = document.getElementById('result-body');
+  card.style.display = 'block';
+  body.innerHTML = '<div class="loading-text"><div class="spinner"></div>AIが画像を解析しています...</div>';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: 'image/jpeg', data: currentImageBase64 }
+            },
+            {
+              type: 'text',
+              text: `この商品画像を見て、以下をJSON形式のみで返してください。前置きや説明は不要です。
+{
+  "name": "商品の正式名称・型番（できるだけ具体的に）",
+  "brand": "ブランド・メーカー名",
+  "category": "カテゴリ（例：ゲーム機、カメラ、家電など）",
+  "condition": "状態の推定（良好・普通・要確認など）",
+  "search_keyword": "Amazon・メルカリで検索するのに最適なキーワード",
+  "note": "リサーチ時の注意点や補足（1文）"
+}`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      body.innerHTML = `<div style="color:var(--red);font-size:13px;">エラー：${data.error.message}</div>`;
+      return;
+    }
+
+    const text = data.content[0].text;
+    let parsed;
+    try {
+      const clean = text.replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(clean);
+    } catch {
+      body.innerHTML = `<div class="product-name">${text}</div>`;
+      return;
+    }
+
+    currentKeyword = parsed.search_keyword || parsed.name;
+    document.getElementById('keyword').value = currentKeyword;
+
+    body.innerHTML = `
+      <div class="product-name">${parsed.name || '不明'}</div>
+      <div class="product-meta">
+        ${parsed.brand ? `🏷 ${parsed.brand}　` : ''}
+        ${parsed.category ? `📂 ${parsed.category}　` : ''}
+        ${parsed.condition ? `🔍 状態：${parsed.condition}` : ''}
+        ${parsed.note ? `<br><br>💡 ${parsed.note}` : ''}
+      </div>
+      <div style="margin-top:12px; padding:10px 12px; background:var(--accent-dim); border-radius:8px; font-size:12px; color:var(--accent);">
+        検索キーワード：<strong>${currentKeyword}</strong>
+      </div>
+    `;
+
+  } catch (err) {
+    body.innerHTML = `<div style="color:var(--red);font-size:13px;">通信エラーが発生しました。APIキーと接続を確認してください。</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '検索';
+  }
+}
+
+// Search
+function kw() {
+  const k = document.getElementById('keyword').value.trim() || currentKeyword;
+  if (!k) { alert('商品名を入力するか、写真を認識させてください'); return null; }
+  return k;
+}
+function setKeyword() { currentKeyword = document.getElementById('keyword').value.trim(); }
+function openAmazon() { const k = kw(); if (k) window.open('https://www.amazon.co.jp/s?k=' + encodeURIComponent(k)); }
+function openMercariSold() { const k = kw(); if (k) window.open('https://jp.mercari.com/search?keyword=' + encodeURIComponent(k) + '&status=sold_out'); }
+function openMercariNew() { const k = kw(); if (k) window.open('https://jp.mercari.com/search?keyword=' + encodeURIComponent(k)); }
+function openYahoo() { const k = kw(); if (k) window.open('https://auctions.yahoo.co.jp/closedsearch/closedsearch?p=' + encodeURIComponent(k)); }
+function openRakuten() { const k = kw(); if (k) window.open('https://search.rakuten.co.jp/search/mall/' + encodeURIComponent(k) + '/'); }
+function openYahooShopping() { const k = kw(); if (k) window.open('https://shopping.yahoo.co.jp/search?p=' + encodeURIComponent(k)); }
+
+async function fetchPrices() {
+  const k = kw(); if (!k) return;
+  const loading = document.getElementById('price-loading');
+  const result = document.getElementById('price-result');
+  const list = document.getElementById('price-list');
+  loading.style.display = 'block';
+  result.style.display = 'none';
+  list.innerHTML = '';
+
+  const results = [];
+
+  // 楽天API
+  try {
+    const rakutenAppId = '1058889904647574740'; // 楽天アプリID（デモ用）
+    const res = await fetch(`https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?applicationId=${rakutenAppId}&keyword=${encodeURIComponent(k)}&hits=3&sort=%2BitemPrice&format=json`);
+    const data = await res.json();
+    if (data.Items && data.Items.length > 0) {
+      data.Items.slice(0, 3).forEach(item => {
+        results.push({
+          platform: '楽天',
+          name: item.Item.itemName.slice(0, 40) + (item.Item.itemName.length > 40 ? '...' : ''),
+          price: item.Item.itemPrice,
+          url: item.Item.itemUrl,
+          color: '#c0392b'
+        });
+      });
+    }
+  } catch(e) { console.log('楽天エラー:', e); }
+
+  // Yahoo!ショッピングAPI
+  try {
+    const yahooAppId = 'dj00aiZpPUxzNlBEWXZxbWNkbyZzPWNvbnN1bWVyc2VjcmV0Jng9OTA-'; // Yahoo AppID（デモ用）
+    const res = await fetch(`https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=${yahooAppId}&query=${encodeURIComponent(k)}&results=3&sort=%2Bprice&format=json`);
+    const data = await res.json();
+    if (data.hits && data.hits.length > 0) {
+      data.hits.slice(0, 3).forEach(item => {
+        results.push({
+          platform: 'Yahoo!',
+          name: item.name.slice(0, 40) + (item.name.length > 40 ? '...' : ''),
+          price: item.price,
+          url: item.url,
+          color: '#6600cc'
+        });
+      });
+    }
+  } catch(e) { console.log('Yahooエラー:', e); }
+
+  loading.style.display = 'none';
+
+  if (results.length === 0) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--text2);padding:8px 0;">価格情報を取得できませんでした。各サイトで手動確認してください。</div>';
+    // リンクボタンを表示
+    list.innerHTML += `
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button onclick="openRakuten()" style="flex:1;padding:10px;border-radius:8px;background:#c0392b;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">楽天で検索</button>
+        <button onclick="openYahooShopping()" style="flex:1;padding:10px;border-radius:8px;background:#6600cc;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">Yahoo!で検索</button>
+      </div>`;
+  } else {
+    // 価格順にソート
+    results.sort((a, b) => a.price - b.price);
+    results.forEach((item, i) => {
+      list.innerHTML += `
+        <div onclick="window.open('${item.url}')" style="display:flex;align-items:center;gap:10px;padding:10px;background:${i===0?'rgba(10,124,78,0.06)':'var(--surface2)'};border-radius:8px;cursor:pointer;border:1px solid ${i===0?'rgba(10,124,78,0.2)':'transparent'};">
+          ${i===0?'<span style="font-size:10px;font-weight:700;background:#0a7c4e;color:#fff;padding:2px 6px;border-radius:4px;white-space:nowrap;">最安値</span>':'<span style="font-size:10px;color:var(--text2);padding:2px 6px;white-space:nowrap;">${i+1}位</span>'}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;font-weight:700;color:${item.color};margin-bottom:2px;">${item.platform}</div>
+            <div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div>
+          </div>
+          <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;white-space:nowrap;">¥${item.price.toLocaleString()}</div>
+        </div>`;
+    });
+    list.innerHTML += `
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button onclick="openRakuten()" style="flex:1;padding:8px;border-radius:8px;background:#c0392b;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">楽天でもっと見る</button>
+        <button onclick="openYahooShopping()" style="flex:1;padding:8px;border-radius:8px;background:#6600cc;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">Yahoo!でもっと見る</button>
+      </div>`;
+  }
+  result.style.display = 'block';
+}
+
+// Calc
+function calc() {
+  const cost = parseFloat(document.getElementById('cost').value) || 0;
+  const sell = parseFloat(document.getElementById('sell').value) || 0;
+  const ship = parseFloat(document.getElementById('ship').value) || 0;
+  const feeRate = parseFloat(document.getElementById('fee').value) || 0;
+  if (!sell && !cost) return;
+  const feeAmt = Math.round(sell * feeRate / 100);
+  const totalCost = cost + ship + feeAmt;
+  const profit = sell - totalCost;
+  const rate = sell > 0 ? Math.round(profit / sell * 100) : 0;
+  document.getElementById('r-fee').textContent = '¥' + feeAmt.toLocaleString();
+  document.getElementById('r-cost').textContent = '¥' + totalCost.toLocaleString();
+  const pe = document.getElementById('r-profit');
+  pe.textContent = (profit >= 0 ? '+' : '') + '¥' + profit.toLocaleString();
+  pe.className = 'profit-val ' + (profit > 0 ? 'p-pos' : profit < 0 ? 'p-neg' : 'p-neutral');
+  const badge = document.getElementById('r-badge');
+  badge.className = 'badge ' + (profit > 0 ? 'b-ok' : profit < 0 ? 'b-ng' : 'b-ev');
+  badge.textContent = profit > 0 ? '利益あり' : profit < 0 ? '赤字' : 'トントン';
+  document.getElementById('r-rate').textContent = sell > 0 ? '利益率 ' + rate + '%' : '';
+}
+
+function openSettings() {
+  const modal = document.getElementById('settings-modal');
+  modal.style.display = 'flex';
+  const saved = getApiKey();
+  if (saved) document.getElementById('settings-api-input').placeholder = saved.slice(0,20) + '...';
+}
+function closeSettings() {
+  document.getElementById('settings-modal').style.display = 'none';
+  document.getElementById('settings-status').style.display = 'none';
+}
+function saveFromSettings() {
+  const key = document.getElementById('settings-api-input').value.trim();
+  if (!key) { alert('APIキーを入力してください'); return; }
+  if (!key.startsWith('sk-ant-')) { alert('正しいAPIキーを入力してください（sk-ant-で始まる文字列）'); return; }
+  localStorage.setItem(API_KEY_STORAGE, key);
+  document.getElementById('setup-section').style.display = 'none';
+  const st = document.getElementById('settings-status');
+  st.textContent = '✅ 保存しました！';
+  st.style.display = 'block';
+  setTimeout(() => closeSettings(), 1200);
+}
+function deleteApiKey() {
+  if (!confirm('APIキーを削除しますか？')) return;
+  localStorage.removeItem(API_KEY_STORAGE);
+  document.getElementById('setup-section').style.display = 'block';
+  closeSettings();
+}
+</script>
+</body>
+</html>
