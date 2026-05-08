@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="リサーチAI">
+<title>リサーチAIツール</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f5f3;--surface:#fff;--surface2:#efefed;--border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.13);
+  --text:#111;--text2:#888;--text3:#bbb;--accent:#1a1a1a;--accent-dim:rgba(26,26,26,0.06);
+  --red:#c0392b;--red-dim:rgba(192,57,43,0.1);--green:#0a7c4e;--green-dim:rgba(10,124,78,0.1);
+  --blue:#1a56c4;--blue-dim:rgba(26,86,196,0.08);--radius:16px;--radius-sm:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;}
+.app{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+.header{padding:52px 20px 16px;background:var(--bg);position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border);}
+.header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.app-name{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-0.02em;}
+.ai-badge{font-size:10px;font-weight:600;background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:20px;letter-spacing:.05em;}
+.header-sub{font-size:12px;color:var(--text3);}
+.content{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:20px;}
+.section-label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
+.upload-area{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--surface);}
+.upload-area:hover{border-color:var(--accent);background:var(--accent-dim);}
+.upload-icon{font-size:32px;margin-bottom:8px;}
+.upload-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.upload-sub{font-size:12px;color:var(--text2);}
+.preview-wrap{position:relative;border-radius:var(--radius);overflow:hidden;background:var(--surface);}
+.preview-img{width:100%;max-height:220px;object-fit:contain;display:block;background:#111;}
+.preview-remove{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.7);border:1px solid var(--border2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;}
+.analyze-btn{width:100%;padding:15px;border-radius:var(--radius);background:var(--accent);color:#fff;border:none;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s,transform .12s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.analyze-btn:active{transform:scale(.97);opacity:.85;}
+.analyze-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.result-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.result-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+.result-title{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;}
+.result-body{padding:16px;}
+.product-name{font-size:16px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:8px;}
+.product-meta{font-size:13px;color:var(--text2);line-height:1.6;}
+.loading-text{font-size:14px;color:var(--text2);display:flex;align-items:center;gap:8px;}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.search-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.search-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;cursor:pointer;transition:background .15s,border-color .15s,transform .12s;text-align:left;display:flex;flex-direction:column;gap:5px;}
+.search-btn:active{transform:scale(.96);}
+.search-btn-name{font-size:14px;font-weight:600;color:var(--text);}
+.search-btn-desc{font-size:11px;color:var(--text2);line-height:1.4;}
+.search-btn-icon{font-size:18px;}
+.search-btn.amazon{border-color:rgba(255,168,0,.2);}
+.search-btn.amazon:hover{border-color:rgba(255,168,0,.5);background:rgba(255,168,0,.05);}
+.search-btn.mercari-sold{border-color:rgba(255,71,87,.2);}
+.search-btn.mercari-sold:hover{border-color:rgba(255,71,87,.5);background:rgba(255,71,87,.05);}
+.search-btn.mercari-new{border-color:rgba(255,71,87,.1);}
+.search-btn.yahoo{border-color:rgba(102,102,255,.2);}
+.search-btn.yahoo:hover{border-color:rgba(102,102,255,.5);background:rgba(102,102,255,.05);}
+.search-btn.rakuten{border-color:rgba(191,0,0,.2);}
+.search-btn.rakuten:hover{border-color:rgba(191,0,0,.5);background:rgba(191,0,0,.05);}
+.manual-row{display:flex;gap:8px;}
+.manual-input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 14px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color .2s;}
+.manual-input:focus{border-color:var(--accent);}
+.manual-input::placeholder{color:var(--text3);}
+.manual-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:0 14px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;white-space:nowrap;}
+.manual-btn:active{opacity:.7;}
+.calc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.calc-fields{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field-label{font-size:11px;font-weight:500;color:var(--text2);}
+.field input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:15px;font-family:'DM Mono',monospace;color:var(--text);outline:none;transition:border-color .2s;width:100%;}
+.field input:focus{border-color:var(--accent);}
+.field input::placeholder{color:var(--text3);font-size:13px;}
+.calc-result{border-top:1px solid var(--border);padding:16px;}
+.calc-rows{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.calc-row{display:flex;justify-content:space-between;font-size:13px;}
+.calc-row-label{color:var(--text2);}
+.calc-row-val{font-family:'DM Mono',monospace;color:var(--text);}
+.profit-line{display:flex;justify-content:space-between;align-items:baseline;}
+.profit-lbl{font-size:13px;color:var(--text2);}
+.profit-val{font-size:26px;font-weight:600;font-family:'DM Mono',monospace;transition:color .3s;}
+.p-neutral{color:var(--text3);}
+.p-pos{color:var(--green);}
+.p-neg{color:var(--red);}
+.badge-row{margin-top:8px;display:flex;align-items:center;gap:8px;}
+.badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;}
+.b-ok{background:var(--green-dim);color:var(--green);}
+.b-ng{background:var(--red-dim);color:var(--red);}
+.b-ev{background:var(--surface2);color:var(--text2);}
+.rate-val{font-size:12px;font-family:'DM Mono',monospace;color:var(--text2);}
+.fee-note{font-size:11px;color:var(--text3);line-height:1.6;}
+.safe-bottom{height:32px;}
+.setup-card{background:var(--surface);border:1px solid rgba(200,255,0,.2);border-radius:var(--radius);padding:16px;}
+.setup-title{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:6px;}
+.setup-desc{font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.5;}
+.setup-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);outline:none;margin-bottom:10px;}
+.setup-input:focus{border-color:var(--accent);}
+.setup-save{width:100%;padding:11px;border-radius:var(--radius-sm);background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;}
+
+/* ===== 買取屋比較 ===== */
+.kt-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.kt-card-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.kt-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);}
+.kt-htitle{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;}
+.kt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 12px 0;}
+.kt-btn{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 10px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:4px;transition:background .15s,border-color .15s,transform .12s;}
+.kt-btn:active{transform:scale(.96);}
+.kt-icon{font-size:16px;}
+.kt-name{font-size:13px;font-weight:700;color:var(--text);}
+.kt-sub{font-size:10px;color:var(--text2);line-height:1.4;}
+.kt-btn.bookoff{border-color:rgba(0,140,60,.2);} .kt-btn.bookoff:hover{border-color:rgba(0,140,60,.5);background:rgba(0,140,60,.05);}
+.kt-btn.geo{border-color:rgba(0,100,200,.2);} .kt-btn.geo:hover{border-color:rgba(0,100,200,.5);background:rgba(0,100,200,.05);}
+.kt-btn.hardoff{border-color:rgba(230,80,0,.2);} .kt-btn.hardoff:hover{border-color:rgba(230,80,0,.5);background:rgba(230,80,0,.05);}
+.kt-btn.netoff{border-color:rgba(80,0,180,.2);} .kt-btn.netoff:hover{border-color:rgba(80,0,180,.5);background:rgba(80,0,180,.05);}
+.kt-btn.surugaya{border-color:rgba(180,0,80,.2);} .kt-btn.surugaya:hover{border-color:rgba(180,0,80,.5);background:rgba(180,0,80,.05);}
+.kt-btn.joshin{border-color:rgba(200,0,0,.2);} .kt-btn.joshin:hover{border-color:rgba(200,0,0,.5);background:rgba(200,0,0,.05);}
+.kt-btn.tsutaya{border-color:rgba(0,0,0,.12);} .kt-btn.tsutaya:hover{border-color:rgba(0,0,0,.3);background:rgba(0,0,0,.03);}
+.kt-btn.valuebook{border-color:rgba(0,160,160,.2);} .kt-btn.valuebook:hover{border-color:rgba(0,160,160,.5);background:rgba(0,160,160,.05);}
+.kt-btn.kaitori-com{border-color:rgba(255,140,0,.2);} .kt-btn.kaitori-com:hover{border-color:rgba(255,140,0,.5);background:rgba(255,140,0,.05);}
+.kt-btn.ecobook{border-color:rgba(30,160,30,.2);} .kt-btn.ecobook:hover{border-color:rgba(30,160,30,.5);background:rgba(30,160,30,.05);}
+.kt-ai-wrap{padding:12px;}
+.kt-ai-btn{width:100%;padding:13px;border-radius:var(--radius-sm);background:var(--blue-dim);border:1px solid rgba(26,86,196,.2);color:var(--blue);font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s,transform .12s;}
+.kt-ai-btn:active{transform:scale(.97);opacity:.8;}
+.kt-ai-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.kt-estimate{margin:0 12px 12px;}
+.kt-est-inner{background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border2);overflow:hidden;}
+.kt-est-head{padding:10px 12px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;}
+.kt-est-body{padding:12px;}
+.kt-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.kt-row:last-of-type{border-bottom:none;}
+.kt-shop-name{color:var(--text);font-weight:600;}
+.kt-price{font-family:'DM Mono',monospace;font-weight:700;}
+.price-high{color:var(--green);}
+.price-mid{color:var(--text);}
+.price-low{color:var(--text3);}
+.kt-best-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--green-dim);color:var(--green);margin-left:6px;}
+.kt-overall-note{margin-top:10px;font-size:11px;color:var(--text3);line-height:1.6;}
+.kt-footer{padding:0 12px 12px;font-size:11px;color:var(--text3);line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-row">
+      <span class="app-name">リサーチAIツール</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="ai-badge">AI搭載</span>
+        <button onclick="openSettings()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:3px 10px;font-size:12px;color:var(--text2);cursor:pointer;">⚙️ 設定</button>
+      </div>
+    </div>
+    <div class="header-sub">📷 写真 → 🤖 AI認識 → 🔍 相場検索</div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9999;align-items:flex-end;justify-content:center;">
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;width:100%;max-width:390px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span style="font-size:15px;font-weight:600;color:var(--text);">⚙️ APIキー設定</span>
+        <button onclick="closeSettings()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">✕</button>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">新しいAPIキーを入力して保存してください。</div>
+      <input class="setup-input" id="settings-api-input" type="password" placeholder="sk-ant-api03-..." style="margin-bottom:10px;"/>
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveFromSettings()" style="flex:1;padding:11px;border-radius:var(--radius-sm);background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;">保存</button>
+        <button onclick="deleteApiKey()" style="padding:11px 14px;border-radius:var(--radius-sm);background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,92,.3);font-size:13px;font-weight:600;cursor:pointer;">削除</button>
+      </div>
+      <div id="settings-status" style="margin-top:10px;font-size:12px;color:var(--green);display:none;"></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- API Key Setup -->
+    <div class="setup-card" id="setup-section" style="display:none;">
+      <div class="setup-title">🔑 APIキーを設定</div>
+      <div class="setup-desc">写真認識機能を使うためにAPIキーを入力してください。入力後はこのデバイスに保存されます。</div>
+      <input class="setup-input" id="api-key-input" type="password" placeholder="sk-ant-api03-..."/>
+      <button class="setup-save" onclick="saveApiKey()">保存して使い始める</button>
+    </div>
+
+    <!-- Photo Upload -->
+    <div>
+      <div class="section-label">写真で商品認識</div>
+      <input type="file" accept="image/*" capture="environment" onchange="onFile(event)" id="file-camera" style="display:none;"/>
+      <input type="file" accept="image/*" onchange="onFile(event)" id="file-gallery" style="display:none;"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="upload-area">
+        <div class="upload-area" onclick="document.getElementById('file-camera').click()">
+          <div class="upload-icon">📷</div>
+          <div class="upload-title">カメラで撮る</div>
+          <div class="upload-sub">その場で撮影</div>
+        </div>
+        <div class="upload-area" onclick="document.getElementById('file-gallery').click()">
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-title">画像を選ぶ</div>
+          <div class="upload-sub">保存済みから選択</div>
+        </div>
+      </div>
+      <div class="preview-wrap" id="preview-wrap" style="display:none;margin-top:10px;">
+        <img id="preview-img" class="preview-img"/>
+        <button class="preview-remove" onclick="removeImage()">✕</button>
+      </div>
+    </div>
+
+    <button class="analyze-btn" id="analyze-btn" onclick="analyze()" disabled>検索</button>
+
+    <!-- Result -->
+    <div class="result-card" id="result-card" style="display:none;">
+      <div class="result-header"><div class="result-dot"></div><span class="result-title">認識結果</span></div>
+      <div class="result-body" id="result-body"></div>
+    </div>
+
+    <!-- 相場確認 -->
+    <div>
+      <div class="section-label">相場を確認</div>
+      <div style="margin-bottom:10px;">
+        <div class="manual-row">
+          <input class="manual-input" id="keyword" placeholder="検索"/>
+          <button class="manual-btn" onclick="setKeyword()">セット</button>
+        </div>
+      </div>
+      <div class="search-grid">
+        <button class="search-btn amazon" onclick="openAmazon()"><div class="search-btn-icon">📦</div><div class="search-btn-name">Amazon</div><div class="search-btn-desc">新品・中古の売値を確認</div></button>
+        <button class="search-btn mercari-sold" onclick="openMercariSold()"><div class="search-btn-icon">✅</div><div class="search-btn-name">メルカリ売れ済み</div><div class="search-btn-desc">実際に売れた価格</div></button>
+        <button class="search-btn mercari-new" onclick="openMercariNew()"><div class="search-btn-icon">🏷️</div><div class="search-btn-name">メルカリ出品中</div><div class="search-btn-desc">今の競合・相場</div></button>
+        <button class="search-btn yahoo" onclick="openYahoo()"><div class="search-btn-icon">🔨</div><div class="search-btn-name">ヤフオク落札済</div><div class="search-btn-desc">オークション相場</div></button>
+        <button class="search-btn rakuten" onclick="openRakuten()" style="grid-column:span 2;"><div class="search-btn-icon">🛒</div><div class="search-btn-name">楽天市場</div><div class="search-btn-desc">新品の定価・相場を確認（仕入れ値の基準に）</div></button>
+      </div>
+    </div>
+
+    <!-- 仕入れ先価格比較 -->
+    <div>
+      <div class="section-label">仕入れ先を比較</div>
+      <button class="search-btn" onclick="fetchPrices()" style="width:100%;background:var(--accent);border-color:var(--accent);flex-direction:row;align-items:center;gap:8px;justify-content:center;padding:12px;margin-bottom:10px;">
+        <span style="font-size:16px;">🔍</span>
+        <div><div class="search-btn-name" style="color:#fff;">楽天・Yahoo価格を取得</div><div class="search-btn-desc" style="color:rgba(255,255,255,.7);">最安値を自動で比較</div></div>
+      </button>
+      <div id="price-loading" style="display:none;text-align:center;padding:16px;font-size:13px;color:var(--text2);"><div class="spinner" style="margin:0 auto 8px;"></div>価格を取得中...</div>
+      <div id="price-result" style="display:none;">
+        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;">
+          <div style="padding:12px 14px;border-bottom:1px solid var(--border2);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;">価格比較結果</div>
+          <div id="price-list" style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 買取屋比較（新機能） ===== -->
+    <div>
+      <div class="section-label">買取屋で売る</div>
+      <div class="kt-card">
+        <div class="kt-card-header">
+          <div class="kt-dot"></div>
+          <span class="kt-htitle">買取店サイトを検索</span>
+        </div>
+
+        <div class="kt-grid">
+          <button class="kt-btn bookoff" onclick="openKt('bookoff')">
+            <div class="kt-icon">📗</div><div class="kt-name">ブックオフ</div><div class="kt-sub">本・CD・ゲーム・家電</div>
+          </button>
+          <button class="kt-btn geo" onclick="openKt('geo')">
+            <div class="kt-icon">🎮</div><div class="kt-name">ゲオ</div><div class="kt-sub">ゲーム・DVD・スマホ</div>
+          </button>
+          <button class="kt-btn hardoff" onclick="openKt('hardoff')">
+            <div class="kt-icon">🔧</div><div class="kt-name">ハードオフ</div><div class="kt-sub">家電・楽器・カメラ</div>
+          </button>
+          <button class="kt-btn netoff" onclick="openKt('netoff')">
+            <div class="kt-icon">📦</div><div class="kt-name">ネットオフ</div><div class="kt-sub">本・CD宅配買取</div>
+          </button>
+          <button class="kt-btn surugaya" onclick="openKt('surugaya')">
+            <div class="kt-icon">🎌</div><div class="kt-name">駿河屋</div><div class="kt-sub">アニメ・フィギュア・ゲーム</div>
+          </button>
+          <button class="kt-btn joshin" onclick="openKt('joshin')">
+            <div class="kt-icon">📻</div><div class="kt-name">ジョーシン</div><div class="kt-sub">家電・ゲーム・スマホ</div>
+          </button>
+          <button class="kt-btn tsutaya" onclick="openKt('tsutaya')">
+            <div class="kt-icon">📀</div><div class="kt-name">TSUTAYA</div><div class="kt-sub">本・CD・DVD・ゲーム</div>
+          </button>
+          <button class="kt-btn valuebook" onclick="openKt('valuebook')">
+            <div class="kt-icon">📚</div><div class="kt-name">バリューブックス</div><div class="kt-sub">本・教科書・漫画</div>
+          </button>
+          <button class="kt-btn kaitori-com" onclick="openKt('kaitori')">
+            <div class="kt-icon">🏅</div><div class="kt-name">買取一括.com</div><div class="kt-sub">複数店を一括比較</div>
+          </button>
+          <button class="kt-btn ecobook" onclick="openKt('ecobook')">
+            <div class="kt-icon">♻️</div><div class="kt-name">エコブック</div><div class="kt-sub">本・DVD宅配買取</div>
+          </button>
+        </div>
+
+        <!-- AI買取価格見積もり -->
+        <div class="kt-ai-wrap">
+          <button class="kt-ai-btn" id="kt-ai-btn" onclick="estimateKt()">🤖 AIで買取価格を推定する</button>
+        </div>
+
+        <div class="kt-estimate" id="kt-estimate" style="display:none;">
+          <div class="kt-est-inner">
+            <div class="kt-est-head">AI買取価格推定（参考値）</div>
+            <div class="kt-est-body" id="kt-est-body">
+              <div class="loading-text"><div class="spinner"></div>推定中...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="kt-footer">※ AI推定は参考値です。実際の買取価格は状態・時期・店舗により異なります。必ず各店舗でご確認ください。</div>
+      </div>
+    </div>
+
+    <!-- 利益計算 -->
+    <div>
+      <div class="section-label">利益計算</div>
+      <div class="calc-card">
+        <div class="calc-fields">
+          <div class="field"><span class="field-label">仕入れ値（円）</span><input type="number" id="cost" placeholder="3000" inputmode="numeric" oninput="calc()"/></div>
+          <div class="field"><span class="field-label">売値（円）</span><input type="number" id="sell" placeholder="6000" inputmode="numeric" oninput="calc()"/></div>
+          <div class="field"><span class="field-label">送料（円）</span><input type="number" id="ship" placeholder="600" inputmode="numeric" oninput="calc()"/></div>
+          <div class="field"><span class="field-label">手数料率（%）</span><input type="number" id="fee" placeholder="10" value="10" inputmode="numeric" oninput="calc()"/></div>
+        </div>
+        <div class="calc-result">
+          <div class="calc-rows">
+            <div class="calc-row"><span class="calc-row-label">手数料</span><span class="calc-row-val" id="r-fee">—</span></div>
+            <div class="calc-row"><span class="calc-row-label">合計コスト</span><span class="calc-row-val" id="r-cost">—</span></div>
+          </div>
+          <div class="profit-line">
+            <span class="profit-lbl">利益</span>
+            <span class="profit-val p-neutral" id="r-profit">—</span>
+          </div>
+          <div class="badge-row">
+            <span class="badge b-ev" id="r-badge">入力待ち</span>
+            <span class="rate-val" id="r-rate"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="fee-note">手数料率の目安：メルカリ 10% ／ Amazon 約15% ／ ヤフオク 8.8%</p>
+    <div class="safe-bottom"></div>
+  </div>
+</div>
+
+<script>
+const STORE='resale_api_key';
+let imgB64=null,curKw='',curProd=null;
+
+window.onload=()=>{if(!localStorage.getItem(STORE))document.getElementById('setup-section').style.display='block';};
+
+function saveApiKey(){const k=document.getElementById('api-key-input').value.trim();if(!k.startsWith('sk-ant-')){alert('正しいAPIキーを入力してください');return;}localStorage.setItem(STORE,k);document.getElementById('setup-section').style.display='none';alert('APIキーを保存しました！');}
+function getApiKey(){return localStorage.getItem(STORE)||'';}
+
+function onFile(e){const f=e.target.files[0];if(f)loadImg(f);}
+function loadImg(file){
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');const MAX=1200;let w=img.width,h=img.height;
+      if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+      c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+      const d=c.toDataURL('image/jpeg',.8);imgB64=d.split(',')[1];
+      document.getElementById('preview-img').src=d;
+      document.getElementById('preview-wrap').style.display='block';
+      document.getElementById('upload-area').style.display='none';
+      document.getElementById('analyze-btn').disabled=false;
+    };img.src=ev.target.result;
+  };r.readAsDataURL(file);
+}
+function removeImage(){
+  imgB64=null;curProd=null;
+  document.getElementById('preview-wrap').style.display='none';
+  document.getElementById('upload-area').style.display='grid';
+  document.getElementById('analyze-btn').disabled=true;
+  document.getElementById('result-card').style.display='none';
+  document.getElementById('kt-estimate').style.display='none';
+  document.getElementById('file-camera').value='';
+  document.getElementById('file-gallery').value='';
+}
+
+async function analyze(){
+  const apiKey=getApiKey();
+  if(!apiKey){document.getElementById('setup-section').style.display='block';document.getElementById('setup-section').scrollIntoView({behavior:'smooth'});return;}
+  if(!imgB64)return;
+  const btn=document.getElementById('analyze-btn');
+  btn.disabled=true;btn.innerHTML='<div class="spinner" style="border-top-color:#fff;"></div><span>認識中...</span>';
+  const card=document.getElementById('result-card'),body=document.getElementById('result-body');
+  card.style.display='block';body.innerHTML='<div class="loading-text"><div class="spinner"></div>AIが画像を解析しています...</div>';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:'image/jpeg',data:imgB64}},
+        {type:'text',text:'この商品画像を見て、以下をJSON形式のみで返してください。前置きや説明は不要です。\n{"name":"商品の正式名称・型番","brand":"ブランド・メーカー名","category":"カテゴリ","condition":"状態の推定（良好・普通・要確認）","search_keyword":"Amazon・メルカリ向け最適キーワード","note":"リサーチ時の注意点（1文）"}'}
+      ]}]})
+    });
+    const data=await res.json();
+    if(data.error){body.innerHTML=`<div style="color:var(--red);font-size:13px;">エラー：${data.error.message}</div>`;return;}
+    let parsed;
+    try{parsed=JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());}
+    catch{body.innerHTML=`<div class="product-name">${data.content[0].text}</div>`;return;}
+    curKw=parsed.search_keyword||parsed.name;curProd=parsed;
+    document.getElementById('keyword').value=curKw;
+    body.innerHTML=`<div class="product-name">${parsed.name||'不明'}</div><div class="product-meta">${parsed.brand?'🏷 '+parsed.brand+'　':''}${parsed.category?'📂 '+parsed.category+'　':''}${parsed.condition?'🔍 状態：'+parsed.condition:''}${parsed.note?'<br><br>💡 '+parsed.note:''}</div><div style="margin-top:12px;padding:10px 12px;background:var(--accent-dim);border-radius:8px;font-size:12px;color:var(--accent);">検索キーワード：<strong>${curKw}</strong></div>`;
+  }catch(e){body.innerHTML='<div style="color:var(--red);font-size:13px;">通信エラーが発生しました。APIキーと接続を確認してください。</div>';}
+  finally{btn.disabled=false;btn.innerHTML='検索';}
+}
+
+function kw(){const k=document.getElementById('keyword').value.trim()||curKw;if(!k){alert('商品名を入力するか、写真を認識させてください');return null;}return k;}
+function setKeyword(){curKw=document.getElementById('keyword').value.trim();}
+function openAmazon(){const k=kw();if(k)window.open('https://www.amazon.co.jp/s?k='+encodeURIComponent(k));}
+function openMercariSold(){const k=kw();if(k)window.open('https://jp.mercari.com/search?keyword='+encodeURIComponent(k)+'&status=sold_out');}
+function openMercariNew(){const k=kw();if(k)window.open('https://jp.mercari.com/search?keyword='+encodeURIComponent(k));}
+function openYahoo(){const k=kw();if(k)window.open('https://auctions.yahoo.co.jp/closedsearch/closedsearch?p='+encodeURIComponent(k));}
+function openRakuten(){const k=kw();if(k)window.open('https://search.rakuten.co.jp/search/mall/'+encodeURIComponent(k)+'/');}
+function openYahooShopping(){const k=kw();if(k)window.open('https://shopping.yahoo.co.jp/search?p='+encodeURIComponent(k));}
+
+/* ===== 買取屋リンク ===== */
+const KT={
+  bookoff:  k=>`https://www.bookoff.co.jp/search/?q=${encodeURIComponent(k)}`,
+  geo:      k=>`https://geo-online.co.jp/store/search/list/?q=${encodeURIComponent(k)}`,
+  hardoff:  k=>`https://www.hardoff.co.jp/search/?q=${encodeURIComponent(k)}`,
+  netoff:   k=>`https://www.netoff.co.jp/category/search/?q=${encodeURIComponent(k)}`,
+  surugaya: k=>`https://www.suruga-ya.jp/search?category=0&search_word=${encodeURIComponent(k)}`,
+  joshin:   k=>`https://joshinweb.jp/search/w/${encodeURIComponent(k)}/`,
+  tsutaya:  k=>`https://shopping.tsutaya.co.jp/search/?q=${encodeURIComponent(k)}`,
+  valuebook:k=>`https://www.valuebooks.jp/search?s=${encodeURIComponent(k)}`,
+  kaitori:  k=>`https://kaitori.com/search?q=${encodeURIComponent(k)}`,
+  ecobook:  k=>`https://www.ecobook.jp/search?keyword=${encodeURIComponent(k)}`
+};
+function openKt(shop){const k=kw();if(k&&KT[shop])window.open(KT[shop](k));}
+
+/* ===== AI買取価格推定 ===== */
+async function estimateKt(){
+  const apiKey=getApiKey();
+  if(!apiKey){document.getElementById('setup-section').style.display='block';document.getElementById('setup-section').scrollIntoView({behavior:'smooth'});return;}
+  const k=kw();if(!k)return;
+  const btn=document.getElementById('kt-ai-btn'),estDiv=document.getElementById('kt-estimate'),estBody=document.getElementById('kt-est-body');
+  btn.disabled=true;btn.innerHTML='<div class="spinner" style="width:14px;height:14px;border-top-color:var(--blue);"></div> 推定中...';
+  estDiv.style.display='block';estBody.innerHTML='<div class="loading-text"><div class="spinner"></div>AIが買取価格を推定しています...</div>';
+  estDiv.scrollIntoView({behavior:'smooth',block:'nearest'});
+  const desc=curProd?`商品名：${curProd.name}、ブランド：${curProd.brand||'不明'}、カテゴリ：${curProd.category||'不明'}、状態：${curProd.condition||'不明'}`:`商品名：${k}`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:`以下の商品について日本の主要買取店での買取価格を推定してください。\n${desc}\n\n以下のJSON形式のみで返してください。前置き・説明・コードブロック記号は不要です。\n{"shops":[{"name":"ブックオフ","min":数値,"max":数値,"note":"一言メモ"},{"name":"ゲオ","min":数値,"max":数値,"note":"一言メモ"},{"name":"ハードオフ","min":数値,"max":数値,"note":"一言メモ"},{"name":"駿河屋","min":数値,"max":数値,"note":"一言メモ"},{"name":"ネットオフ","min":数値,"max":数値,"note":"一言メモ"},{"name":"TSUTAYA","min":数値,"max":数値,"note":"一言メモ"},{"name":"バリューブックス","min":数値,"max":数値,"note":"一言メモ"}],"best_shop":"最も高い買取が期待できる店名","overall_note":"買取時のアドバイス（1〜2文）"}\n価格はすべて整数（円）。取り扱いのない店はmin・maxを0にしてください。`}]})
+    });
+    const data=await res.json();
+    if(data.error){estBody.innerHTML=`<div style="color:var(--red);font-size:13px;">エラー：${data.error.message}</div>`;return;}
+    let parsed;
+    try{parsed=JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());}
+    catch{estBody.innerHTML=`<div style="font-size:13px;color:var(--text2);">${data.content[0].text}</div>`;return;}
+    const shops=(parsed.shops||[]).filter(s=>s.max>0);
+    const maxP=Math.max(...shops.map(s=>s.max),0);
+    let html='';
+    shops.forEach(s=>{
+      const isBest=s.name===parsed.best_shop;
+      const cls=s.max>=maxP*.9?'price-high':s.max>=maxP*.6?'price-mid':'price-low';
+      html+=`<div class="kt-row"><div><div class="kt-shop-name">${s.name}${isBest?'<span class="kt-best-badge">おすすめ</span>':''}</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">${s.note||''}</div></div><div class="kt-price ${cls}">¥${s.min.toLocaleString()}〜¥${s.max.toLocaleString()}</div></div>`;
+    });
+    if(!shops.length)html='<div style="font-size:13px;color:var(--text2);">この商品の買取情報を推定できませんでした。</div>';
+    if(parsed.overall_note)html+=`<div class="kt-overall-note">💡 ${parsed.overall_note}</div>`;
+    estBody.innerHTML=html;
+  }catch(e){estBody.innerHTML='<div style="color:var(--red);font-size:13px;">通信エラーが発生しました。</div>';}
+  finally{btn.disabled=false;btn.innerHTML='🤖 AIで買取価格を再推定する';}
+}
+
+/* ===== 仕入れ先価格比較 ===== */
+async function fetchPrices(){
+  const k=kw();if(!k)return;
+  const loading=document.getElementById('price-loading'),result=document.getElementById('price-result'),list=document.getElementById('price-list');
+  loading.style.display='block';result.style.display='none';list.innerHTML='';
+  const results=[];
+  try{const r=await fetch(`https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?applicationId=1058889904647574740&keyword=${encodeURIComponent(k)}&hits=3&sort=%2BitemPrice&format=json`);const d=await r.json();if(d.Items)d.Items.slice(0,3).forEach(i=>results.push({platform:'楽天',name:i.Item.itemName.slice(0,40)+(i.Item.itemName.length>40?'...':''),price:i.Item.itemPrice,url:i.Item.itemUrl,color:'#c0392b'}));}catch(e){}
+  try{const r=await fetch(`https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=dj00aiZpPUxzNlBEWXZxbWNkbyZzPWNvbnN1bWVyc2VjcmV0Jng9OTA-&query=${encodeURIComponent(k)}&results=3&sort=%2Bprice&format=json`);const d=await r.json();if(d.hits)d.hits.slice(0,3).forEach(i=>results.push({platform:'Yahoo!',name:i.name.slice(0,40)+(i.name.length>40?'...':''),price:i.price,url:i.url,color:'#6600cc'}));}catch(e){}
+  loading.style.display='none';
+  if(!results.length){list.innerHTML='<div style="font-size:13px;color:var(--text2);padding:8px 0;">価格情報を取得できませんでした。各サイトで手動確認してください。</div><div style="display:flex;gap:8px;margin-top:8px;"><button onclick="openRakuten()" style="flex:1;padding:10px;border-radius:8px;background:#c0392b;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;">楽天で検索</button><button onclick="openYahooShopping()" style="flex:1;padding:10px;border-radius:8px;background:#6600cc;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;">Yahoo!で検索</button></div>';}
+  else{
+    results.sort((a,b)=>a.price-b.price);
+    results.forEach((item,i)=>{list.innerHTML+=`<div onclick="window.open('${item.url}')" style="display:flex;align-items:center;gap:10px;padding:10px;background:${i===0?'rgba(10,124,78,0.06)':'var(--surface2)'};border-radius:8px;cursor:pointer;border:1px solid ${i===0?'rgba(10,124,78,0.2)':'transparent'};"><span style="font-size:10px;font-weight:700;${i===0?'background:#0a7c4e;color:#fff;padding:2px 6px;border-radius:4px;':'color:var(--text2);padding:2px 6px;'}white-space:nowrap;">${i===0?'最安値':(i+1)+'位'}</span><div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:700;color:${item.color};margin-bottom:2px;">${item.platform}</div><div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div></div><div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;white-space:nowrap;">¥${item.price.toLocaleString()}</div></div>`;});
+    list.innerHTML+=`<div style="display:flex;gap:8px;margin-top:4px;"><button onclick="openRakuten()" style="flex:1;padding:8px;border-radius:8px;background:#c0392b;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;">楽天でもっと見る</button><button onclick="openYahooShopping()" style="flex:1;padding:8px;border-radius:8px;background:#6600cc;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;">Yahoo!でもっと見る</button></div>`;
+  }
+  result.style.display='block';
+}
+
+function calc(){
+  const cost=parseFloat(document.getElementById('cost').value)||0,sell=parseFloat(document.getElementById('sell').value)||0,ship=parseFloat(document.getElementById('ship').value)||0,feeRate=parseFloat(document.getElementById('fee').value)||0;
+  if(!sell&&!cost)return;
+  const feeAmt=Math.round(sell*feeRate/100),totalCost=cost+ship+feeAmt,profit=sell-totalCost,rate=sell>0?Math.round(profit/sell*100):0;
+  document.getElementById('r-fee').textContent='¥'+feeAmt.toLocaleString();
+  document.getElementById('r-cost').textContent='¥'+totalCost.toLocaleString();
+  const pe=document.getElementById('r-profit');
+  pe.textContent=(profit>=0?'+':'')+'¥'+profit.toLocaleString();
+  pe.className='profit-val '+(profit>0?'p-pos':profit<0?'p-neg':'p-neutral');
+  const badge=document.getElementById('r-badge');
+  badge.className='badge '+(profit>0?'b-ok':profit<0?'b-ng':'b-ev');
+  badge.textContent=profit>0?'利益あり':profit<0?'赤字':'トントン';
+  document.getElementById('r-rate').textContent=sell>0?'利益率 '+rate+'%':'';
+}
+
+function openSettings(){document.getElementById('settings-modal').style.display='flex';const s=getApiKey();if(s)document.getElementById('settings-api-input').placeholder=s.slice(0,20)+'...';}
+function closeSettings(){document.getElementById('settings-modal').style.display='none';document.getElementById('settings-status').style.display='none';}
+function saveFromSettings(){
+  const k=document.getElementById('settings-api-input').value.trim();
+  if(!k){alert('APIキーを入力してください');return;}
+  if(!k.startsWith('sk-ant-')){alert('正しいAPIキーを入力してください');return;}
+  localStorage.setItem(STORE,k);document.getElementById('setup-section').style.display='none';
+  const st=document.getElementById('settings-status');st.textContent='✅ 保存しました！';st.style.display='block';
+  setTimeout(()=>closeSettings(),1200);
+}
+function deleteApiKey(){if(!confirm('APIキーを削除しますか？'))return;localStorage.removeItem(STORE);document.getElementById('setup-section').style.display='block';closeSettings();}
+</script>
+</body>
+</html>
